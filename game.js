@@ -9,24 +9,27 @@ const createScene = function () {
 
     // 2. Lighting Setup
     const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
-    hemiLight.intensity = 0.6;
+    hemiLight.intensity = 0.7;
 
     const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
     dirLight.position = new BABYLON.Vector3(20, 40, 20);
     dirLight.intensity = 0.8;
 
-    // 3. Ground Grass Field
+    // 3. Main Grass Ground (Raised slightly to render above the skybox bottom)
     const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 2000 }, scene);
-    ground.position.y = -0.01;
+    ground.position.y = 0.01;
     const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
-    groundMat.diffuseColor = new BABYLON.Color3(0.2, 0.55, 0.2);
+    groundMat.diffuseColor = new BABYLON.Color3(0.25, 0.65, 0.25); // Vibrant Grass Green
+    groundMat.specularColor = new BABYLON.Color3(0, 0, 0);
     ground.material = groundMat;
 
-    // 4. Main Road & Borders
+    // 4. Main Asphalt Road
     const roadWidth = 18;
     const road = BABYLON.MeshBuilder.CreateGround("road", { width: roadWidth, height: 2000 }, scene);
+    road.position.y = 0.02; // Placed right on top of grass
     const roadMat = new BABYLON.StandardMaterial("roadMat", scene);
-    roadMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.15);
+    roadMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.15); // Dark Gray Road
+    roadMat.specularColor = new BABYLON.Color3(0, 0, 0);
     road.material = roadMat;
 
     // 5. Skybox
@@ -38,7 +41,7 @@ const createScene = function () {
     skyboxMat.emissiveColor = new BABYLON.Color3(0.4, 0.6, 0.9);
     skybox.material = skyboxMat;
 
-    // 6. Checkpoint Arches (Milestone 2.3 Feature)
+    // 6. Checkpoint Arches
     const createCheckpoint = (zPos) => {
         const arch = BABYLON.MeshBuilder.CreateBox("arch", { width: 20, height: 1, depth: 1 }, scene);
         arch.position = new BABYLON.Vector3(0, 6, zPos);
@@ -50,13 +53,13 @@ const createScene = function () {
         pillarRight.position = new BABYLON.Vector3(9.5, 3, zPos);
 
         const archMat = new BABYLON.StandardMaterial("archMat", scene);
-        archMat.diffuseColor = new BABYLON.Color3(1, 0.8, 0); // Yellow Checkpoints
+        archMat.diffuseColor = new BABYLON.Color3(1, 0.8, 0); // Bright Yellow
         arch.material = archMat;
         pillarLeft.material = archMat;
         pillarRight.material = archMat;
     };
 
-    // Spawn checkpoints down the track
+    // Spawn 3 Checkpoints
     createCheckpoint(-100);
     createCheckpoint(-300);
     createCheckpoint(-500);
@@ -70,7 +73,7 @@ const createScene = function () {
     carMat.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
     car.material = carMat;
 
-    // Roof Top
+    // Roof
     const roof = BABYLON.MeshBuilder.CreateBox("roof", { width: 1.8, height: 0.6, depth: 2 }, scene);
     roof.position.y = 1.2;
     roof.position.z = -0.2;
@@ -89,7 +92,7 @@ const createScene = function () {
     camera.maxCameraSpeed = 20;
     camera.lockedTarget = car;
 
-    // 9. Input & Collision Physics Loop
+    // 9. Input & Physics Loop
     const keys = {};
 
     window.addEventListener("keydown", (e) => {
@@ -106,7 +109,7 @@ const createScene = function () {
     const friction = 0.96;
 
     scene.onBeforeRenderObservable.add(() => {
-        // Off-road Grass Penalty: Slow down car if off the asphalt
+        // Off-road Grass Penalty
         const isOffRoad = Math.abs(car.position.x) > (roadWidth / 2 - 1);
         maxSpeed = isOffRoad ? 0.35 : 1.2; 
 
@@ -127,7 +130,7 @@ const createScene = function () {
             car.rotation.y += 0.03;
         }
 
-        // Update Car Movement
+        // Position Updates
         car.position.x -= Math.sin(car.rotation.y) * speed;
         car.position.z -= Math.cos(car.rotation.y) * speed;
     });
