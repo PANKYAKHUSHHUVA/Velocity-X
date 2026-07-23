@@ -94,10 +94,10 @@ const createScene = function () {
             speed *= friction;
         }
 
-        if (inputMap["a"] || inputMap["arrowleft"]) {
+        if (inputMap["d"] || inputMap["arrowleft"]) {
             car.rotation.y += 0.03;
         }
-        if (inputMap["d"] || inputMap["arrowright"]) {
+        if (inputMap["a"] || inputMap["arrowright"]) {
             car.rotation.y -= 0.03;
         }
 
