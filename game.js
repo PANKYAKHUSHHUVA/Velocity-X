@@ -18,7 +18,7 @@ const createScene = function () {
     dirLight.position = new BABYLON.Vector3(20, 40, 20);
     dirLight.intensity = 0.8;
 
-    // 3. Ground
+    // 3. Ground (Grass Field)
     const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 2000 }, scene);
     ground.position.y = -0.01;
     const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
@@ -49,7 +49,7 @@ const createScene = function () {
     carMat.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
     car.material = carMat;
 
-    // Roof Top
+    // Car Roof Top
     const roof = BABYLON.MeshBuilder.CreateBox("roof", { width: 1.8, height: 0.6, depth: 2 }, scene);
     roof.position.y = 1.2;
     roof.position.z = -0.2;
@@ -68,7 +68,7 @@ const createScene = function () {
     camera.maxCameraSpeed = 20;
     camera.lockedTarget = car;
 
-    // 8. Driving Controls
+    // 8. Driving Controls & Steering Mechanics
     const inputMap = {};
     scene.actionManager = new BABYLON.ActionManager(scene);
 
@@ -86,6 +86,7 @@ const createScene = function () {
     const friction = 0.96;
 
     scene.onBeforeRenderObservable.add(() => {
+        // Accelerate & Reverse
         if (inputMap["w"] || inputMap["arrowup"]) {
             if (speed < maxSpeed) speed += acceleration;
         } else if (inputMap["s"] || inputMap["arrowdown"]) {
@@ -94,13 +95,15 @@ const createScene = function () {
             speed *= friction;
         }
 
-        if (inputMap["d"] || inputMap["arrowleft"]) {
-            car.rotation.y += 0.03;
+        // Correct Steering Controls
+        if (inputMap["a"] || inputMap["arrowleft"]) {
+            car.rotation.y -= 0.03; // Turn Left
         }
-        if (inputMap["a"] || inputMap["arrowright"]) {
-            car.rotation.y -= 0.03;
+        if (inputMap["d"] || inputMap["arrowright"]) {
+            car.rotation.y += 0.03; // Turn Right
         }
 
+        // Position Updates
         car.position.x -= Math.sin(car.rotation.y) * speed;
         car.position.z -= Math.cos(car.rotation.y) * speed;
     });
