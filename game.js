@@ -10,7 +10,7 @@ const createScene = function () {
     scene.fogDensity = 0.0015;
     scene.fogColor = new BABYLON.Color3(0.6, 0.75, 0.9);
 
-    // 2. Lighting Setup with Shadows
+    // 2. Lighting Setup
     const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
     hemiLight.intensity = 0.5;
 
@@ -18,23 +18,18 @@ const createScene = function () {
     dirLight.position = new BABYLON.Vector3(20, 40, 20);
     dirLight.intensity = 0.8;
 
-    const shadowGenerator = new BABYLON.ShadowGenerator(1024, dirLight);
-    shadowGenerator.useBlurExponentialShadowMap = true;
-
-    // 3. Ground (Terrain Field)
+    // 3. Ground
     const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 2000 }, scene);
     ground.position.y = -0.01;
     const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
-    groundMat.diffuseColor = new BABYLON.Color3(0.2, 0.55, 0.2); // Grass green
+    groundMat.diffuseColor = new BABYLON.Color3(0.2, 0.55, 0.2);
     ground.material = groundMat;
-    ground.receiveShadows = true;
 
-    // 4. Main Track / Road
+    // 4. Main Road
     const road = BABYLON.MeshBuilder.CreateGround("road", { width: 18, height: 2000 }, scene);
     const roadMat = new BABYLON.StandardMaterial("roadMat", scene);
-    roadMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.15); // Dark Asphalt
+    roadMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.15);
     road.material = roadMat;
-    road.receiveShadows = true;
 
     // 5. Skybox
     const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
@@ -48,10 +43,10 @@ const createScene = function () {
     // 6. Player Sports Car Assembly
     const car = BABYLON.MeshBuilder.CreateBox("carBody", { width: 2.2, height: 0.8, depth: 4.5 }, scene);
     car.position.y = 0.6;
-    car.rotation.y = Math.PI; // Correct forward direction facing down the road
+    car.rotation.y = Math.PI;
 
     const carMat = new BABYLON.StandardMaterial("carMat", scene);
-    carMat.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1); // Metallic Red
+    carMat.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
     car.material = carMat;
 
     // Roof Top
@@ -61,10 +56,8 @@ const createScene = function () {
     roof.parent = car;
 
     const roofMat = new BABYLON.StandardMaterial("roofMat", scene);
-    roofMat.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.05); // Tinted glass
+    roofMat.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.05);
     roof.material = roofMat;
-
-    shadowGenerator.addShadowCaster(car);
 
     // 7. Follow Camera
     const camera = new BABYLON.FollowCamera("FollowCam", new BABYLON.Vector3(0, 10, -20), scene);
@@ -75,7 +68,7 @@ const createScene = function () {
     camera.maxCameraSpeed = 20;
     camera.lockedTarget = car;
 
-    // 8. Keyboard Controls & Driving Physics Loop
+    // 8. Driving Controls
     const inputMap = {};
     scene.actionManager = new BABYLON.ActionManager(scene);
 
@@ -93,7 +86,6 @@ const createScene = function () {
     const friction = 0.96;
 
     scene.onBeforeRenderObservable.add(() => {
-        // Accelerate (W/Up) or Reverse (S/Down)
         if (inputMap["w"] || inputMap["arrowup"]) {
             if (speed < maxSpeed) speed += acceleration;
         } else if (inputMap["s"] || inputMap["arrowdown"]) {
@@ -102,7 +94,6 @@ const createScene = function () {
             speed *= friction;
         }
 
-        // Steer Left (A/Left) or Right (D/Right)
         if (inputMap["a"] || inputMap["arrowleft"]) {
             car.rotation.y += 0.03;
         }
@@ -110,7 +101,6 @@ const createScene = function () {
             car.rotation.y -= 0.03;
         }
 
-        // Move relative to car direction
         car.position.x -= Math.sin(car.rotation.y) * speed;
         car.position.z -= Math.cos(car.rotation.y) * speed;
     });
