@@ -3,76 +3,41 @@ const engine = new BABYLON.Engine(canvas, true);
 
 const createScene = function () {
     const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color3(0.5, 0.8, 1.0); // Sky blue background
 
-    // Camera following the car
-    const camera = new BABYLON.FollowCamera("FollowCam", new BABYLON.Vector3(0, 10, -20), scene);
-    camera.radius = 15;
-    camera.heightOffset = 4;
-    camera.rotationOffset = 0;
-    camera.cameraAcceleration = 0.05;
-    camera.maxCameraSpeed = 20;
+    // 1. Sky Color & Environment Fog
+    scene.clearColor = new BABYLON.Color3(0.4, 0.6, 0.9); // Bright sky blue
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.002;
+    scene.fogColor = new BABYLON.Color3(0.6, 0.75, 0.9);
 
-    // Light
-    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-    light.intensity = 0.8;
+    // 2. Camera Setup
+    const camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 3, 25, new BABYLON.Vector3(0, 1, 0), scene);
+    camera.attachControl(canvas, true);
+    camera.lowerRadiusLimit = 5;
+    camera.upperRadiusLimit = 100;
 
-    // Road (Ground)
-    const road = BABYLON.MeshBuilder.CreateGround("road", { width: 20, height: 1000 }, scene);
-    const roadMaterial = new BABYLON.StandardMaterial("roadMat", scene);
-    roadMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Dark gray road
-    road.material = roadMaterial;
+    // 3. Lighting Setup
+    const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
+    hemiLight.intensity = 0.6;
 
-    // Player Car (Temporary Box)
-    const car = BABYLON.MeshBuilder.CreateBox("car", { width: 2, height: 1.2, depth: 4 }, scene);
-    car.position.y = 0.6;
-    const carMaterial = new BABYLON.StandardMaterial("carMat", scene);
-    carMaterial.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1); // Red sports car color
-    car.material = carMaterial;
+    const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
+    dirLight.position = new BABYLON.Vector3(20, 40, 20);
+    dirLight.intensity = 0.8;
 
-    // Attach camera to car
-    camera.lockedTarget = car;
+    // 4. Ground (Terrain Base)
+    const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 1000 }, scene);
+    const groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
+    groundMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.5, 0.2); // Green terrain
+    ground.material = groundMaterial;
 
-    // Keyboard Controls
-    const inputMap = {};
-    scene.actionManager = new BABYLON.ActionManager(scene);
-
-    scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyDownTrigger, (evt) => {
-        inputMap[evt.sourceEvent.key.toLowerCase()] = true;
-    }));
-
-    scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, (evt) => {
-        inputMap[evt.sourceEvent.key.toLowerCase()] = false;
-    }));
-
-    // Car Movement Loop
-    let speed = 0;
-    const maxSpeed = 0.8;
-    const acceleration = 0.02;
-    const friction = 0.96;
-
-    scene.onBeforeRenderObservable.add(() => {
-        // Accelerate / Reverse
-        if (inputMap["w"] || inputMap["arrowup"]) {
-            if (speed < maxSpeed) speed += acceleration;
-        } else if (inputMap["s"] || inputMap["arrowdown"]) {
-            if (speed > -maxSpeed / 2) speed -= acceleration;
-        } else {
-            speed *= friction;
-        }
-
-        // Steer Left / Right
-        if (inputMap["a"] || inputMap["arrowleft"]) {
-            car.rotation.y -= 0.03;
-        }
-        if (inputMap["d"] || inputMap["arrowright"]) {
-            car.rotation.y += 0.03;
-        }
-
-        // Move Forward relative to rotation
-        car.position.x += Math.sin(car.rotation.y) * speed;
-        car.position.z += Math.cos(car.rotation.y) * speed;
-    });
+    // 5. Skybox
+    const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+    const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.emissiveColor = new BABYLON.Color3(0.4, 0.6, 0.9);
+    skybox.material = skyboxMaterial;
 
     return scene;
 };
