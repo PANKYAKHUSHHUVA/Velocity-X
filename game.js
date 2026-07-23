@@ -6,27 +6,25 @@ const createScene = function () {
 
     // 1. Sky & Environment Fog
     scene.clearColor = new BABYLON.Color3(0.4, 0.6, 0.9);
-    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.0015;
-    scene.fogColor = new BABYLON.Color3(0.6, 0.75, 0.9);
 
     // 2. Lighting Setup
     const hemiLight = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, 0), scene);
-    hemiLight.intensity = 0.5;
+    hemiLight.intensity = 0.6;
 
     const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
     dirLight.position = new BABYLON.Vector3(20, 40, 20);
     dirLight.intensity = 0.8;
 
-    // 3. Ground (Grass Field)
+    // 3. Ground Grass Field
     const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 2000 }, scene);
     ground.position.y = -0.01;
     const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
     groundMat.diffuseColor = new BABYLON.Color3(0.2, 0.55, 0.2);
     ground.material = groundMat;
 
-    // 4. Main Road
-    const road = BABYLON.MeshBuilder.CreateGround("road", { width: 18, height: 2000 }, scene);
+    // 4. Main Road & Borders
+    const roadWidth = 18;
+    const road = BABYLON.MeshBuilder.CreateGround("road", { width: roadWidth, height: 2000 }, scene);
     const roadMat = new BABYLON.StandardMaterial("roadMat", scene);
     roadMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.15);
     road.material = roadMat;
@@ -40,7 +38,30 @@ const createScene = function () {
     skyboxMat.emissiveColor = new BABYLON.Color3(0.4, 0.6, 0.9);
     skybox.material = skyboxMat;
 
-    // 6. Player Sports Car Assembly
+    // 6. Checkpoint Arches (Milestone 2.3 Feature)
+    const createCheckpoint = (zPos) => {
+        const arch = BABYLON.MeshBuilder.CreateBox("arch", { width: 20, height: 1, depth: 1 }, scene);
+        arch.position = new BABYLON.Vector3(0, 6, zPos);
+
+        const pillarLeft = BABYLON.MeshBuilder.CreateBox("pLeft", { width: 1, height: 6, depth: 1 }, scene);
+        pillarLeft.position = new BABYLON.Vector3(-9.5, 3, zPos);
+
+        const pillarRight = BABYLON.MeshBuilder.CreateBox("pRight", { width: 1, height: 6, depth: 1 }, scene);
+        pillarRight.position = new BABYLON.Vector3(9.5, 3, zPos);
+
+        const archMat = new BABYLON.StandardMaterial("archMat", scene);
+        archMat.diffuseColor = new BABYLON.Color3(1, 0.8, 0); // Yellow Checkpoints
+        arch.material = archMat;
+        pillarLeft.material = archMat;
+        pillarRight.material = archMat;
+    };
+
+    // Spawn checkpoints down the track
+    createCheckpoint(-100);
+    createCheckpoint(-300);
+    createCheckpoint(-500);
+
+    // 7. Player Sports Car Assembly
     const car = BABYLON.MeshBuilder.CreateBox("carBody", { width: 2.2, height: 0.8, depth: 4.5 }, scene);
     car.position.y = 0.6;
     car.rotation.y = Math.PI;
@@ -49,7 +70,7 @@ const createScene = function () {
     carMat.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
     car.material = carMat;
 
-    // Car Roof Top
+    // Roof Top
     const roof = BABYLON.MeshBuilder.CreateBox("roof", { width: 1.8, height: 0.6, depth: 2 }, scene);
     roof.position.y = 1.2;
     roof.position.z = -0.2;
@@ -59,7 +80,7 @@ const createScene = function () {
     roofMat.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.05);
     roof.material = roofMat;
 
-    // 7. Follow Camera
+    // 8. Follow Camera
     const camera = new BABYLON.FollowCamera("FollowCam", new BABYLON.Vector3(0, 10, -20), scene);
     camera.radius = 12;
     camera.heightOffset = 4;
@@ -68,42 +89,45 @@ const createScene = function () {
     camera.maxCameraSpeed = 20;
     camera.lockedTarget = car;
 
-    // 8. Driving Controls & Steering Mechanics
-    const inputMap = {};
-    scene.actionManager = new BABYLON.ActionManager(scene);
+    // 9. Input & Collision Physics Loop
+    const keys = {};
 
-    scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyDownTrigger, (evt) => {
-        inputMap[evt.sourceEvent.key.toLowerCase()] = true;
-    }));
+    window.addEventListener("keydown", (e) => {
+        keys[e.key.toLowerCase()] = true;
+    });
 
-    scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, (evt) => {
-        inputMap[evt.sourceEvent.key.toLowerCase()] = false;
-    }));
+    window.addEventListener("keyup", (e) => {
+        keys[e.key.toLowerCase()] = false;
+    });
 
     let speed = 0;
-    const maxSpeed = 1.2;
+    let maxSpeed = 1.2;
     const acceleration = 0.025;
     const friction = 0.96;
 
     scene.onBeforeRenderObservable.add(() => {
-        // Accelerate & Reverse
-        if (inputMap["w"] || inputMap["arrowup"]) {
+        // Off-road Grass Penalty: Slow down car if off the asphalt
+        const isOffRoad = Math.abs(car.position.x) > (roadWidth / 2 - 1);
+        maxSpeed = isOffRoad ? 0.35 : 1.2; 
+
+        // Accelerate / Reverse
+        if (keys["w"] || keys["arrowup"]) {
             if (speed < maxSpeed) speed += acceleration;
-        } else if (inputMap["s"] || inputMap["arrowdown"]) {
+        } else if (keys["s"] || keys["arrowdown"]) {
             if (speed > -maxSpeed / 2) speed -= acceleration;
         } else {
             speed *= friction;
         }
 
-        // Correct Steering Controls
-        if (inputMap["a"] || inputMap["arrowleft"]) {
-            car.rotation.y -= 0.03; // Turn Left
+        // Steer Left / Right
+        if (keys["a"] || keys["arrowleft"]) {
+            car.rotation.y -= 0.03;
         }
-        if (inputMap["d"] || inputMap["arrowright"]) {
-            car.rotation.y += 0.03; // Turn Right
+        if (keys["d"] || keys["arrowright"]) {
+            car.rotation.y += 0.03;
         }
 
-        // Position Updates
+        // Update Car Movement
         car.position.x -= Math.sin(car.rotation.y) * speed;
         car.position.z -= Math.cos(car.rotation.y) * speed;
     });
