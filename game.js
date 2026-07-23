@@ -15,21 +15,19 @@ const createScene = function () {
     dirLight.position = new BABYLON.Vector3(20, 40, 20);
     dirLight.intensity = 0.8;
 
-    // 3. Dynamic Textured Grass Ground (Not flat green!)
+    // 3. Dynamic Textured Grass Ground
     const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 2000 }, scene);
-    ground.position.y = 0.01; // Slightly elevated so it doesn't z-fight with skybox
+    ground.position.y = 0.01;
     
     const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
     
-    // Generate a procedurally detailed grass texture
+    // Procedural grass texture
     const grassTexture = new BABYLON.DynamicTexture("grassTex", 512, scene, false);
     const ctx = grassTexture.getContext();
     
-    // Base grass color
     ctx.fillStyle = "#2d8a2d";
     ctx.fillRect(0, 0, 512, 512);
     
-    // Add grass noise variation and blade detail
     for (let i = 0; i < 8000; i++) {
         ctx.fillStyle = Math.random() > 0.5 ? "#1e5c1e" : "#3eb03e";
         ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 4);
@@ -45,7 +43,7 @@ const createScene = function () {
     // 4. Main Asphalt Road
     const roadWidth = 18;
     const road = BABYLON.MeshBuilder.CreateGround("road", { width: roadWidth, height: 2000 }, scene);
-    road.position.y = 0.02; // Positioned right above the grass
+    road.position.y = 0.02;
     const roadMat = new BABYLON.StandardMaterial("roadMat", scene);
     roadMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.15);
     roadMat.specularColor = new BABYLON.Color3(0, 0, 0);
@@ -60,7 +58,7 @@ const createScene = function () {
     skyboxMat.emissiveColor = new BABYLON.Color3(0.4, 0.6, 0.9);
     skybox.material = skyboxMat;
 
-    // 6. 3D Trees on the Grass Field
+    // 6. 3D Trees
     const createTree = (x, z) => {
         const trunk = BABYLON.MeshBuilder.CreateCylinder("trunk", { height: 3, diameter: 0.6 }, scene);
         trunk.position = new BABYLON.Vector3(x, 1.5, z);
@@ -116,4 +114,74 @@ const createScene = function () {
     roof.position.z = -0.2;
     roof.parent = car;
 
-    const roof
+    const roofMat = new BABYLON.StandardMaterial("roofMat", scene);
+    roofMat.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.05);
+    roof.material = roofMat;
+
+    // 9. Camera Setup
+    const camera = new BABYLON.FollowCamera("FollowCam", new BABYLON.Vector3(0, 10, -20), scene);
+    camera.radius = 12;
+    camera.heightOffset = 4;
+    camera.rotationOffset = 0;
+    camera.cameraAcceleration = 0.05;
+    camera.maxCameraSpeed = 20;
+    camera.lockedTarget = car;
+
+    // 10. Controls & Grass Drag Physics
+    const keys = {};
+
+    window.addEventListener("keydown", (e) => {
+        keys[e.key.toLowerCase()] = true;
+    });
+
+    window.addEventListener("keyup", (e) => {
+        keys[e.key.toLowerCase()] = false;
+    });
+
+    let speed = 0;
+    let maxSpeed = 1.2;
+    const acceleration = 0.025;
+    const roadFriction = 0.96;
+    const grassFriction = 0.82;
+
+    scene.onBeforeRenderObservable.add(() => {
+        const isOffRoad = Math.abs(car.position.x) > 8;
+
+        if (isOffRoad) {
+            maxSpeed = 0.3;
+            speed *= grassFriction;
+        } else {
+            maxSpeed = 1.2;
+        }
+
+        if (keys["w"] || keys["arrowup"]) {
+            if (speed < maxSpeed) speed += acceleration;
+        } else if (keys["s"] || keys["arrowdown"]) {
+            if (speed > -maxSpeed / 2) speed -= acceleration;
+        } else {
+            speed *= roadFriction;
+        }
+
+        if (keys["a"] || keys["arrowleft"]) {
+            car.rotation.y -= 0.03;
+        }
+        if (keys["d"] || keys["arrowright"]) {
+            car.rotation.y += 0.03;
+        }
+
+        car.position.x -= Math.sin(car.rotation.y) * speed;
+        car.position.z -= Math.cos(car.rotation.y) * speed;
+    });
+
+    return scene;
+};
+
+const scene = createScene();
+
+engine.runRenderLoop(function () {
+    scene.render();
+});
+
+window.addEventListener("resize", function () {
+    engine.resize();
+});
